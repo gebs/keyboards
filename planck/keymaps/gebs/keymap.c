@@ -16,7 +16,6 @@
 
 #include QMK_KEYBOARD_H
 #include "muse.h"
-#include "features/achordion.h"
 
 
 enum planck_layers {
@@ -58,18 +57,6 @@ enum {
     SPC_LAYR
 };
 
-td_state_t cur_dance(qk_tap_dance_state_t *state);
-
-// Functions associated with individual tap dances
-void ql_finished(qk_tap_dance_state_t *state, void *user_data);
-void ql_reset(qk_tap_dance_state_t *state, void *user_data);
-
-void bl_finished(qk_tap_dance_state_t *state, void *user_data);
-void bl_reset(qk_tap_dance_state_t *state, void *user_data);
-
-void sl_finished(qk_tap_dance_state_t *state, void *user_data);
-void sl_reset(qk_tap_dance_state_t *state, void *user_data);
-
 #define LOWER MO(_LOWER)
 #define RAISE MO(_RAISE)
 #define SHIFT MO(_SHIFT)
@@ -102,7 +89,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  */
 [_QWERTY] = LAYOUT_planck_grid(
     KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_Z,    KC_U,    KC_I,    KC_O,    KC_P,    KC_BSPC,
-    KC_ESC,  GUI_A,   ALT_S,   SFT_D,   CTL_F,   KC_G,    KC_H,    CTL_J,   SFT_K,   ALT_L,   GUI_SCLN, S(KC_QUOT),
+    KC_ESC,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, S(KC_QUOT),
     SHIFT,   KC_Y,    KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_ENT ,
     KC_LCTL, KC_LSFT, KC_LGUI, KC_LALT, LOWER,   KC_SPC,  KC_SPC,  RAISE,   KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT
 ),
@@ -187,13 +174,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   float plover_gb_song[][2]  = SONG(PLOVER_GOODBYE_SOUND);
 #endif
 
-layer_state_t layer_state_set_user(layer_state_t state) {
-  return update_tri_layer_state(state, _LOWER, _RAISE, _ADJUST);
-}
-
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-
-  if (!process_achordion(keycode, record)) { return false; }
 
   switch (keycode) {
     case BACKLIT:
@@ -225,124 +206,3 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   return true;
 }
 
-void matrix_scan_user(void) {
-  achordion_task();
-}
-
-// Determine the current tap dance state
-td_state_t cur_dance(qk_tap_dance_state_t *state) {
-    if (state->count == 1) {
-        if (!state->pressed) return TD_SINGLE_TAP;
-        else return TD_SINGLE_HOLD;
-    } else if (state->count == 2) {
-        // TD_DOUBLE_SINGLE_TAP is to distinguish between typing "pepper", and actually wanting a double tap
-        // action when hitting 'pp'. Suggested use case for this return value is when you want to send two
-        // keystrokes of the key, and not the 'double tap' action/macro.
-        if (state->interrupted) return TD_DOUBLE_SINGLE_TAP;
-        else if (state->pressed) return TD_DOUBLE_HOLD;
-        else return TD_DOUBLE_TAP;
-    }
-    else return TD_UNKNOWN;
-}
-
-// Initialize tap structure associated with example tap dance key
-static td_tap_t bl_tap_state = {
-    .is_press_action = true,
-    .state = TD_NONE
-};
-
-static td_tap_t dl_tap_state = {
-    .is_press_action = true,
-    .state = TD_NONE
-};
-
-static td_tap_t sl_tap_state = {
-    .is_press_action = true,
-    .state = TD_NONE
-};
-
-// Functions that control what our tap dance key does
-void bl_finished(qk_tap_dance_state_t *state, void *user_data) {
-    bl_tap_state.state = cur_dance(state);
-    switch (bl_tap_state.state) {
-        case TD_SINGLE_TAP:
-            tap_code(KC_BSPC);
-            break;
-        case TD_SINGLE_HOLD:
-            layer_on(_LOWER);
-            break;
-        default:
-            break;
-    }
-}
-
-void bl_reset(qk_tap_dance_state_t *state, void *user_data) {
-    // If the key was held down and now is released then switch off the layer
-    if (bl_tap_state.state == TD_SINGLE_HOLD) {
-        layer_off(_LOWER);
-    }
-    bl_tap_state.state = TD_NONE;
-}
-
-// Functions that control what our tap dance key does
-void dl_finished(qk_tap_dance_state_t *state, void *user_data) {
-    dl_tap_state.state = cur_dance(state);
-    switch (dl_tap_state.state) {
-        case TD_SINGLE_TAP:
-            tap_code(KC_DEL);
-            break;
-        case TD_SINGLE_HOLD:
-            layer_on(_RAISE);
-            break;
-        default:
-            break;
-    }
-}
-
-void dl_reset(qk_tap_dance_state_t *state, void *user_data) {
-    // If the key was held down and now is released then switch off the layer
-    if (dl_tap_state.state == TD_SINGLE_HOLD) {
-        layer_off(_RAISE);
-    }
-    dl_tap_state.state = TD_NONE;
-}
-
-// Functions that control what our tap dance key does
-void sl_finished(qk_tap_dance_state_t *state, void *user_data) {
-    sl_tap_state.state = cur_dance(state);
-    switch (sl_tap_state.state) {
-        case TD_SINGLE_TAP:
-            tap_code(KC_SPC);
-            break;
-        case TD_DOUBLE_HOLD:
-            layer_on(_NAV);
-            break;
-        default:
-            break;
-    }
-}
-
-void sl_reset(qk_tap_dance_state_t *state, void *user_data) {
-    // If the key was held down and now is released then switch off the layer
-    if (sl_tap_state.state == TD_DOUBLE_HOLD) {
-        layer_off(_NAV);
-    }
-    sl_tap_state.state = TD_NONE;
-}
-
-// Associate our tap dance key with its functionality
-qk_tap_dance_action_t tap_dance_actions[] = {
-    [BKSP_LAYR] = ACTION_TAP_DANCE_FN_ADVANCED_TIME(NULL, bl_finished, bl_reset, 175),
-    [DEL_LAYR] = ACTION_TAP_DANCE_FN_ADVANCED_TIME(NULL, dl_finished, dl_reset, 175),
-    [SPC_LAYR] = ACTION_TAP_DANCE_FN_ADVANCED_TIME(NULL, sl_finished, sl_reset, 175)
-};
-
-
-uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
-    switch (keycode) {
-        case GUI_A:
-            return 200;
-        default:
-            return TAPPING_TERM;
-    }
-}
