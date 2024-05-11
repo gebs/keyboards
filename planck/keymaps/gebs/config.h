@@ -19,7 +19,7 @@
 */
 
 #define MIDI_BASIC
-
+#define DOUBLE_REPORT
 /* enable advanced MIDI features:
    - MIDI notes can be added to the keymap
    - Octave shift and transpose
